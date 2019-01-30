@@ -557,6 +557,29 @@ module('Unit | Model', function(hooks) {
       assert.deepEqual(user.get('pets').mapBy('id'), [pet1.id]);
     });
 
+    test('hasMany when has elements does not rollback if hasMany not changed', async function(assert) {
+      let projects = makeList('project', 2),
+          json = build('user', {
+            projects: [{id: projects[0].id, type: 'project'}, {id: projects[1].id, type: 'project'}]
+          });
+
+      delete json['included'];
+
+      mockFindRecord('user').returns({json});
+
+      let user = await run(async () => FactoryGuy.store.find('user', json.get('id')));
+
+      console.time('track');
+
+      user.startTrack();
+
+      run(() => user.rollback());
+
+      console.timeEnd('track');
+
+      assert.deepEqual(user.get('projects').mapBy('id').length, projects.length);
+    });
+
     test('value for object / array type attribute', function(assert) {
       let blob    = [1, 2, 3],
           company = make('company', {blob});
